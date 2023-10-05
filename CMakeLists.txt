@@ -24,6 +24,7 @@ add_executable(
         includes/Utility.h
         includes/Vector.h
         includes/VectorIterator.h
+        includes/Allocator.h
 )
 target_link_libraries(
         main

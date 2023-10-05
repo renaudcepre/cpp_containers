@@ -10,9 +10,10 @@
 #include "VectorIterator.h"
 #include "ReverseIterator.h"
 #include "Utility.h"
+#include "Allocator.h"
 
 namespace rc {
-    template<typename T>
+    template<typename T, typename Alloc = rc::allocator<T>>
     class vector {
     public:
         using difference_type = ptrdiff_t;
@@ -159,22 +160,22 @@ namespace rc {
 
     //              IMPLEMENTATIONS
 
-    template<typename T>
-    vector<T>::vector(std::initializer_list<T> list) {
+    template<typename T, typename Alloc>
+    vector<T, Alloc>::vector(std::initializer_list<T> list) {
         reserve(list.size());
         for (auto &el: list)
             push_back(std::move(el));
     }
 
-    template<typename T>
-    vector<T>::vector(const vector &other) {
+    template<typename T, typename Alloc>
+    vector<T, Alloc>::vector(const vector<T, Alloc> &other) {
         reserve(other.size());
         for (size_t i = 0; i < other.size(); ++i)
             push_back(other[i]);
     }
 
-    template<typename T>
-    vector<T>::vector(vector &&other) noexcept {
+    template<typename T, typename Alloc>
+    vector<T, Alloc>::vector(vector<T, Alloc> &&other) noexcept {
         _capacity = other._capacity;
         _size = other._size;
         _data = other._data;
@@ -183,8 +184,8 @@ namespace rc {
         other._size = 0;
     }
 
-    template<typename T>
-    vector<T> &vector<T>::operator=(const vector &other) {
+    template<typename T, typename Alloc>
+    vector<T, Alloc> &vector<T, Alloc>::operator=(const vector<T, Alloc> &other) {
         if (this != &other) {
             clear();
             ::operator delete(_data, sizeof(T) * _capacity);
@@ -198,8 +199,8 @@ namespace rc {
         return *this;
     }
 
-    template<typename T>
-    vector<T> &vector<T>::operator=(vector &&other) noexcept {
+    template<typename T, typename Alloc>
+    vector<T, Alloc> &vector<T, Alloc>::operator=(vector &&other) noexcept {
         if (this != &other) {
             clear();
             ::operator delete(_data, sizeof(T) * _capacity);
@@ -216,84 +217,84 @@ namespace rc {
 
     //      CAPACITY
 
-    template<typename T>
-    size_t vector<T>::size() const noexcept {
+    template<typename T, typename Alloc>
+    size_t vector<T, Alloc>::size() const noexcept {
         return _size;
     }
 
-    template<typename T>
-    size_t vector<T>::capacity() const noexcept {
+    template<typename T, typename Alloc>
+    size_t vector<T, Alloc>::capacity() const noexcept {
         return _capacity;
     }
 
-    template<typename T>
-    void vector<T>::reserve(size_t new_cap) {
+    template<typename T, typename Alloc>
+    void vector<T, Alloc>::reserve(size_t new_cap) {
         if (new_cap > _capacity)
             _realloc(new_cap);
     }
 
-    template<typename T>
-    bool vector<T>::empty() const {
+    template<typename T, typename Alloc>
+    bool vector<T, Alloc>::empty() const {
         return (_size == 0);
     }
 
     //      ELEMENT ACCESS
 
-    template<typename T>
-    T &vector<T>::operator[](difference_type pos) {
+    template<typename T, typename Alloc>
+    T &vector<T, Alloc>::operator[](difference_type pos) {
         return _data[pos];
     }
 
-    template<typename T>
-    const T &vector<T>::operator[](difference_type pos) const {
+    template<typename T, typename Alloc>
+    const T &vector<T, Alloc>::operator[](difference_type pos) const {
         return _data[pos];
     }
 
-    template<typename T>
-    T &vector<T>::at(difference_type i) {
+    template<typename T, typename Alloc>
+    T &vector<T, Alloc>::at(difference_type i) {
         if (i >= _size)
             throw std::out_of_range("index out of bounds");
 
         return _data[i];
     }
 
-    template<typename T>
-    const T &vector<T>::at(difference_type i) const {
+    template<typename T, typename Alloc>
+    const T &vector<T, Alloc>::at(difference_type i) const {
         if (i >= _size)
             throw std::out_of_range("index out of bounds");
 
         return _data[i];
     }
 
-    template<typename T>
-    T &vector<T>::back() {
+    template<typename T, typename Alloc>
+    T &vector<T, Alloc>::back() {
         return _data[_size - 1];
     }
 
-    template<typename T>
-    const T &vector<T>::back() const {
+    template<typename T, typename Alloc>
+    const T &vector<T, Alloc>::back() const {
         return _data[_size - 1];
     }
 
-    template<typename T>
-    T &vector<T>::front() {
+    template<typename T, typename Alloc>
+    T &vector<T, Alloc>::front() {
         return _data[0];
     }
 
-    template<typename T>
-    const T &vector<T>::front() const {
+    template<typename T, typename Alloc>
+    const T &vector<T, Alloc>::front() const {
         return _data[0];
     }
 
-    template<typename T>
-    const T *vector<T>::data() const noexcept {
+    template<typename T, typename Alloc>
+    const T *vector<T, Alloc>::data() const noexcept {
         if (_size == 0)
             return nullptr;
         return _data;
     }
 
-    template<typename T>
-    T *vector<T>::data() noexcept {
+    template<typename T, typename Alloc>
+    T *vector<T, Alloc>::data() noexcept {
         if (_size == 0)
             return nullptr;
         return _data;
@@ -302,15 +303,15 @@ namespace rc {
 
     //      MODIFIERS
 
-    template<typename T>
-    vector<T>::~vector() {
+    template<typename T, typename Alloc>
+    vector<T, Alloc>::~vector() {
         clear();
         ::operator delete(_data, sizeof(T) * _capacity);
     }
 
-    template<typename T>
+    template<typename T, typename Alloc>
     template<typename... Args>
-    T &vector<T>::emplace_back(Args &&... args) {
+    T &vector<T, Alloc>::emplace_back(Args &&... args) {
         if (_size >= _capacity)
             _grow();
 
@@ -322,76 +323,74 @@ namespace rc {
         return _data[_size++];
     }
 
-    template<typename T>
-    void vector<T>::push_back(T &&value) {
+    template<typename T, typename Alloc>
+    void vector<T, Alloc>::push_back(T &&value) {
         if (_size >= _capacity)
             _grow();
 
         new(static_cast<void *>(_data + _size++))T(std::move(value));
     }
 
-    template<typename T>
-    void vector<T>::push_back(const T &value) {
+    template<typename T, typename Alloc>
+    void vector<T, Alloc>::push_back(const T &value) {
         if (_size >= _capacity)
             _grow();
 
         new(static_cast<void *>(_data + _size++))T(value);
     }
 
-    template<typename T>
-    void vector<T>::pop_back() {
+    template<typename T, typename Alloc>
+    void vector<T, Alloc>::pop_back() {
         _data[--_size].~T();
     }
 
 
-    template<typename T>
-    void vector<T>::clear() noexcept {
+    template<typename T, typename Alloc>
+    void vector<T, Alloc>::clear() noexcept {
         for (size_t i = 0; i < _size; ++i)
             _data[i].~T();
         _size = 0;
     }
 
     //      PRIVATE
-    template<typename T>
-    void vector<T>::_realloc(size_t new_capacity) {
+    template<typename T, typename Alloc>
+    void vector<T, Alloc>::_realloc(size_t new_capacity) {
+        Alloc alloc;
+
         if (_size == 0) {
-            _data = (T *) ::operator new(sizeof(T) * new_capacity);
+            _data = alloc.allocate(new_capacity);
             _capacity = new_capacity;
             return;
         }
-        // Avoid using new T[], for avoiding calling ctors.
-        // _realloc is not responsible for contructing objects in it, it just allocate memory.
-        T *tmp = (T *) ::operator new(sizeof(T) * new_capacity);
 
-        if (new_capacity < _size)
+        T* tmp = alloc.allocate(new_capacity);
+
+        if (new_capacity < _size) {
             _size = new_capacity;
+        }
 
-        // Can't use memcpy(), because i want to call the constructors of each objects on the vector.
-        for (size_t i = 0; i < _size; ++i)
-            new(static_cast<void *>(tmp + i))T(std::move(_data[i]));
+        for (size_t i = 0; i < _size; ++i) {
+            std::allocator_traits<Alloc>::construct(alloc, tmp + i, std::move(_data[i]));
+            std::allocator_traits<Alloc>::destroy(alloc, _data + i);
+        }
 
-        // Explicit call to the destructor of each object;
-        // [deleted] : since we move data,
-        // the destructor is called by the move constructor.
-        // for (size_t i = 0; i < _size; ++i)
-        //     _first[i].~T();
+        alloc.deallocate(_data, _capacity);
 
-        // Avoid using delete [], for avoiding calling destructors.
-        ::operator delete(_data, _capacity * sizeof(T));
         _data = tmp;
         _capacity = new_capacity;
     }
 
-    template<typename T>
-    void vector<T>::_grow() {
+
+    template<typename T, typename Alloc>
+    void vector<T, Alloc>::_grow() {
         if (_size == 0)
             _realloc(2);
         else
             _realloc(_capacity + _capacity / 2);
     }
 
-    template<typename T>
-    void vector<T>::resize(size_t count, T value) {
+    template<typename T, typename Alloc>
+    void vector<T, Alloc>::resize(size_t count, T value) {
         if (_size > count) {
             _size = count;
         } else if (_size < count) {
@@ -402,9 +401,9 @@ namespace rc {
         }
     }
 
-    template<typename T>
+    template<typename T, typename Alloc>
     template<typename... Args>
-    typename vector<T>::iterator vector<T>::emplace(const vector::iterator pos, Args &&... args) {
+    typename vector<T, Alloc>::iterator vector<T, Alloc>::emplace(const vector::iterator pos, Args &&... args) {
         size_t end_dist = distance(pos, end());
         size_t begin_dist = distance(begin(), pos);
 
@@ -418,14 +417,14 @@ namespace rc {
         return begin() + begin_dist;
     }
 
-    template<typename T>
-    typename vector<T>::iterator vector<T>::insert(const vector::iterator pos, const T &value) {
+    template<typename T, typename Alloc>
+    typename vector<T, Alloc>::iterator vector<T, Alloc>::insert(const vector::iterator pos, const T &value) {
         return insert(pos, 1, value);
     }
 
-    template<typename T>
+    template<typename T, typename Alloc>
     template<typename IT>
-    typename vector<T>::iterator vector<T>::insert(const vector::iterator pos, IT first, IT last) {
+    typename vector<T, Alloc>::iterator vector<T, Alloc>::insert(const vector::iterator pos, IT first, IT last) {
         size_t count = rc::distance(first, last);
         if (count == 0) // avoids unnecessary calls to distance() ...
             return pos;
@@ -445,8 +444,8 @@ namespace rc {
         return begin() + begin_dist;
     }
 
-    template<typename T>
-    typename vector<T>::iterator vector<T>::insert(const vector::iterator pos, size_t count, const T &value) {
+    template<typename T, typename Alloc>
+    typename vector<T, Alloc>::iterator vector<T, Alloc>::insert(const vector::iterator pos, size_t count, const T &value) {
         if (count == 0) // avoids unnecessary calls to distance() ...
             return pos;
 
